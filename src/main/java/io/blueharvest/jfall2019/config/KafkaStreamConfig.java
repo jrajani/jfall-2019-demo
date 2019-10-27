@@ -101,7 +101,7 @@ public class KafkaStreamConfig {
 
         KStream<String, JsonNode> stream = kStreamBuilder.stream(kafkaTopicAccountCommand, Consumed.with(Serdes.String(), jsonSerde));
 
-        LOG.info("Step-2: Transformation : EventHandler");
+        LOG.info("Step-2: Transformation : CommandHandler");
 
         //  check if it should be checked for expiration of a record against the store
         KStream<String, String> eventStream = stream.transformValues(() -> new CommandHandler(accountSnapshotStore.name()), accountSnapshotStore.name());
