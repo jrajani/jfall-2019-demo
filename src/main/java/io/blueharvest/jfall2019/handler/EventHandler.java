@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.blueharvest.jfall2019.event.AccountCreatedEvent;
 import io.blueharvest.jfall2019.event.MoneyDepositedEvent;
-import io.blueharvest.jfall2019.snapshot.AccountSnapshot;
+import io.blueharvest.jfall2019.entity.Account;
 import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -19,7 +19,7 @@ public class EventHandler implements ValueTransformer<String, String> {
     private static final Logger LOG = LoggerFactory.getLogger(EventHandler.class);
 
     final private String storeName;
-    private KeyValueStore<String, AccountSnapshot> stateStore;
+    private KeyValueStore<String, Account> stateStore;
     private ProcessorContext context;
 
     public EventHandler(final String storeName) {
@@ -42,7 +42,7 @@ public class EventHandler implements ValueTransformer<String, String> {
         if(jsonAsString != null) {
             LOG.info("In transform. Class [{}]", jsonAsString.getClass().getName());
 
-            AccountSnapshot accountSnapshot = null;
+            Account account = null;
 
             final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -54,29 +54,29 @@ public class EventHandler implements ValueTransformer<String, String> {
                 switch (eventType) {
                     case "AccountCreatedEvent":
                         AccountCreatedEvent ace = objectMapper.treeToValue(jsonTree, AccountCreatedEvent.class);
-                        accountSnapshot = new AccountSnapshot(ace.getId(), 0);
+                        account = new Account(ace.getId(), ace.getBalance());
 
-                        stateStore.put(ace.getId(), accountSnapshot);
+                        stateStore.put(ace.getId(), account);
                         break;
                     case "MoneyDepositedEvent":
                         MoneyDepositedEvent mde = objectMapper.treeToValue(jsonTree, MoneyDepositedEvent.class);
-                        accountSnapshot = stateStore.get(mde.getId());
+                        account = stateStore.get(mde.getId());
 
-                        accountSnapshot.setBalance(accountSnapshot.getBalance() + mde.getAmount());
+                        account.setBalance(account.getBalance() + mde.getAmount());
 
-                        stateStore.put(mde.getId(), accountSnapshot);
+                        stateStore.put(mde.getId(), account);
                         break;
                     case "MoneyWithdrawnEvent":
                         MoneyDepositedEvent mwe = objectMapper.treeToValue(jsonTree, MoneyDepositedEvent.class);
-                        accountSnapshot = stateStore.get(mwe.getId());
+                        account = stateStore.get(mwe.getId());
 
-                        accountSnapshot.setBalance(accountSnapshot.getBalance() - mwe.getAmount());
+                        account.setBalance(account.getBalance() - mwe.getAmount());
 
-                        stateStore.put(mwe.getId(), accountSnapshot);
+                        stateStore.put(mwe.getId(), account);
                         break;
                 }
-                if (accountSnapshot != null) {
-                    resultJson = objectMapper.writeValueAsString(accountSnapshot);
+                if (account != null) {
+                    resultJson = objectMapper.writeValueAsString(account);
                 }
             } catch (IOException e) {
                 // TODO Auto-generated catch block

@@ -23,17 +23,11 @@ public class AccountEndpoint {
     private static final Logger LOG = LoggerFactory.getLogger(AccountEndpoint.class);
 
     @Autowired
-    MessageProducer messageProducer;
-
-    @Autowired
-    MessageListener messageListener;
-
-    @Autowired
     private AccountService accountService;
 
     @PostMapping
     @Transactional
-    public void postCustomer(@RequestBody @Valid CreateAccountCommand command) throws ParseException {
+    public void postAccount(@RequestBody @Valid CreateAccountCommand command) throws ParseException {
         accountService.performAccountCreateCommand(command);
     }
 
@@ -43,7 +37,7 @@ public class AccountEndpoint {
     }
 
     @PutMapping(path = "/withdraw")
-    public void deposit(@RequestBody WithdrawMoneyCommand command) {
+    public void withdraw(@RequestBody WithdrawMoneyCommand command) {
         accountService.performWithdrawMoneyCommand(command);
     }
 }

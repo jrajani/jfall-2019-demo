@@ -8,7 +8,7 @@ import io.blueharvest.jfall2019.command.WithdrawMoneyCommand;
 import io.blueharvest.jfall2019.event.AccountCreatedEvent;
 import io.blueharvest.jfall2019.event.MoneyDepositedEvent;
 import io.blueharvest.jfall2019.event.MoneyWithdrawnEvent;
-import io.blueharvest.jfall2019.snapshot.AccountSnapshot;
+import io.blueharvest.jfall2019.entity.Account;
 import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -23,7 +23,7 @@ public class CommandHandler implements ValueTransformer<JsonNode, String> {
     private static final Logger LOG = LoggerFactory.getLogger(CommandHandler.class);
 
     final private String storeName;
-    private KeyValueStore<String, AccountSnapshot> stateStore;
+    private KeyValueStore<String, Account> stateStore;
     private ProcessorContext context;
 
     public CommandHandler(final String storeName) {
@@ -46,7 +46,7 @@ public class CommandHandler implements ValueTransformer<JsonNode, String> {
         if(jsonAsString != null) {
             LOG.info("In transform. ClassType [{}]", jsonAsString.getClass().getName());
 
-            AccountSnapshot accountSnapshot= null;
+            Account account = null;
             ObjectMapper objectMapper = new ObjectMapper();
 
             try {
@@ -63,7 +63,7 @@ public class CommandHandler implements ValueTransformer<JsonNode, String> {
                         if (stateStore.get(createAccountCommand.getId()) != null) {
                             throw new RuntimeException("an account witht the id " + createAccountCommand.getId()+ " already exists!");
                         } else {
-                            AccountCreatedEvent ace = new AccountCreatedEvent(createAccountCommand.getId(), createAccountCommand.getFirstName(), 0);
+                            AccountCreatedEvent ace = new AccountCreatedEvent(createAccountCommand.getId(), createAccountCommand.getFirstName(), createAccountCommand.getBalance());
                             resultJson = objectMapper.writeValueAsString(ace);
                         }
 
@@ -72,8 +72,8 @@ public class CommandHandler implements ValueTransformer<JsonNode, String> {
                         LOG.info("Case: DepositMoneyCommand");
                         DepositMoneyCommand dmc = objectMapper.treeToValue(jsonTree, DepositMoneyCommand.class);
 
-                        accountSnapshot = stateStore.get(dmc.getId());
-                        if (accountSnapshot != null) {
+                        account = stateStore.get(dmc.getId());
+                        if (account != null) {
                             MoneyDepositedEvent mde = new MoneyDepositedEvent(dmc.getId(), dmc.getAmount());
                             resultJson = objectMapper.writeValueAsString(mde);
                         }
@@ -82,9 +82,9 @@ public class CommandHandler implements ValueTransformer<JsonNode, String> {
                         LOG.info("Case: WithdrawMoneyCommand");
                         WithdrawMoneyCommand wmc = objectMapper.treeToValue(jsonTree, WithdrawMoneyCommand.class);
 
-                        accountSnapshot = stateStore.get(wmc.getId());
-                        if (accountSnapshot != null) {
-                            if (accountSnapshot.getBalance() > wmc.getAmount()) {
+                        account = stateStore.get(wmc.getId());
+                        if (account != null) {
+                            if (account.getBalance() > wmc.getAmount()) {
                                 MoneyWithdrawnEvent mwe = new MoneyWithdrawnEvent(wmc.getId(), wmc.getAmount());
                                 resultJson = objectMapper.writeValueAsString(mwe);
                             }

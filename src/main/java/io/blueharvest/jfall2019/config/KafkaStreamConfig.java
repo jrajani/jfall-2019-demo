@@ -6,7 +6,7 @@ import io.blueharvest.jfall2019.handler.CommandHandler;
 import io.blueharvest.jfall2019.handler.EventHandler;
 import io.blueharvest.jfall2019.kafka.serde.AccountDeserializer;
 import io.blueharvest.jfall2019.kafka.serde.AccountSerializer;
-import io.blueharvest.jfall2019.snapshot.AccountSnapshot;
+import io.blueharvest.jfall2019.entity.Account;
 import io.blueharvest.jfall2019.util.JsonUtil;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -92,9 +92,9 @@ public class KafkaStreamConfig {
         final Serializer<JsonNode> jsonSerializer = new JsonSerializer();
         final Deserializer<JsonNode> jsonDeserializer = new JsonDeserializer();
         final Serde<JsonNode> jsonSerde = Serdes.serdeFrom(jsonSerializer, jsonDeserializer);
-        final Serde<AccountSnapshot> accountSerde = Serdes.serdeFrom(new AccountSerializer(), new AccountDeserializer());
+        final Serde<Account> accountSerde = Serdes.serdeFrom(new AccountSerializer(), new AccountDeserializer());
 
-        final StoreBuilder<KeyValueStore<String, AccountSnapshot>> accountSnapshotStore = getAccountSnapshotStore(kafkaStoreAccountSnapshot, accountSerde);
+        final StoreBuilder<KeyValueStore<String, Account>> accountSnapshotStore = getAccountSnapshotStore(kafkaStoreAccountSnapshot, accountSerde);
         kStreamBuilder.addStateStore(accountSnapshotStore);
 
         LOG.info("Step-1: Define the input topic");
@@ -119,7 +119,7 @@ public class KafkaStreamConfig {
         return stream;
     }
 
-    private StoreBuilder<KeyValueStore<String, AccountSnapshot>> getAccountSnapshotStore(String name, Serde<AccountSnapshot> accountSerde) {
+    private StoreBuilder<KeyValueStore<String, Account>> getAccountSnapshotStore(String name, Serde<Account> accountSerde) {
         return Stores
                 .keyValueStoreBuilder(Stores.persistentKeyValueStore(name), Serdes.String(), accountSerde)
                 .withCachingEnabled();
